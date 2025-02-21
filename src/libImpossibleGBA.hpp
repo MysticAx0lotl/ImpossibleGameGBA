@@ -1,5 +1,5 @@
-#ifndef IMPOSSIBLE_LEVEL_LOADER
-#define IMPOSSIBLE_LEVEL_LOADER
+#ifndef IMPOSSIBLE_LEVEL_LOADER_GBA
+#define IMPOSSIBLE_LEVEL_LOADER_GBA
 
 
 #include "bn_array.h"
@@ -52,6 +52,7 @@ FadeEffect: the object that enables the fade effect where blocks will rise or fa
 startX = the x positon where the effect will be enabled
 endX = the x position where the effect will be disabled
 upOrDown = whether it triggers the rising or falling effect (true=rising, false=falling)
+Note: this is the result of merging the BlocksRising and BlocksFalling structs from the original libImpossibleLevel
 */
 struct FadeEffect
 {
@@ -73,8 +74,7 @@ PUBLIC MEMBERS
 - getBlockAtIndex(int): returns the BlockObj at the given int if it exists, returns an empty BlockObj otherwise
 - getBgConAtIndex(int): returns the BgCon at the given int if it exists, returns an empty BgCon otherwise
 - getGravityAtIndex(int): returns the GravityChange at the given int if it exists, returns an empty GravityChange otherwise
-- getRisingAtIndex(int): returns the RisingBlocks at the given int if it exists, returns an empty RisingBlocks otherwise
-- getFallingAtIndex(int): returns the FallingBlocks at the given int if it exists, returns an empty FallingBlocks otherwise
+- getFadeEffectAtIndex(int): returns the FadeEffect at the given int if it exists, returns an empty RisingBlocks otherwise
 - getEndPos(): return the x position of the end wall as an int
 - getObjCount() through getFallingCount(): return the size of the corresponding vectors
 - addNewBlock(BlockObj) through addFallingBlocks(FallingBlocks): add the provided object to the corresponding vector, and increment the associated private member
@@ -90,12 +90,9 @@ PRIVATE MEMBERS
 - risingSections: pointer to a vector of RisingBlocks objects, stored in the heap
 - fallingSections: pointer to a vector of FallingBlocks objects, stored in the heap
 - numBlocks: size of blockObjs, stored as a short
-- numBgSwitch through numFallingBlocks: size of the associated vector, stored as an int
+- numBgSwitch through numFadeEffects: size of the associated vector, stored as an int
 - endWallPos: x position of the end of the level, stored as an int
-- customGraphicsEnabled: whether or not custom graphics are enabled for the level, stored as a bool
 - formatVer: the file format version, stored as an int
-- objNames: the human-readable name corresponding to each object ID, stored as an array of const chars
-- colorNames: the human-readable name corresponding to each color ID, stored as an array of const chars
 */
 class Level
 {

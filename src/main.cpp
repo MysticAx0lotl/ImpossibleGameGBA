@@ -2,7 +2,7 @@
 
 #include "levels.hpp"
 #include "debugMenu.hpp"
-#include "libImpossibleLevel.hpp"
+#include "libImpossibleGBA.hpp"
 //#include "levelHandler.hpp"
 
 /*

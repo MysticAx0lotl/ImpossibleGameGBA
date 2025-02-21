@@ -1,4 +1,4 @@
-#include "libImpossibleLevel.hpp"
+#include "libImpossibleGBA.hpp"
 
 //Java handles evereything in big-Endian
 //Since TIG's level editor is written in java, ints and shorts are written as big-Endian
