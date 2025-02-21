@@ -73,14 +73,12 @@ Level::Level(bool debugMode)
     numBlockObjects = 0;
     numBackgroundChanges = 0;
     numGravityChanges = 0;
-    numBlocksRise = 0;
-    numBlocksFall = 0;
+    numFadeEffects = 0;
     endPos = 3015;
-    customGraphicsEnabled = false;
     formatVer = 0;
 }
 
-Level::Level(bn::array<unsigned char, 5120> levelChars, bool debugMode)
+Level::Level(bn::array<unsigned char, 5120> &levelChars, bool debugMode)
 {
     this->loadLevel(levelChars, debugMode);
 }
@@ -107,8 +105,7 @@ void Level::loadLevel(bn::array<unsigned char, 5120> &levelChars, bool debugMode
         this->formatVer = readIntFromJava(levelChars, currentByte);
         currentByte += 4;
         
-        //the next byte is a bool seeing if custom graphics are enabled
-        this->customGraphicsEnabled = static_cast<bool>(levelChars.at(currentByte));
+        //the next byte is a bool seeing if custom graphics are enabled, we can skip reading it
         currentByte += 1;
 
         //the next two bytes are the number of blocks in the level, stored as a short
@@ -131,7 +128,7 @@ void Level::loadLevel(bn::array<unsigned char, 5120> &levelChars, bool debugMode
             tempBlockObject->yPos = readIntFromJava(levelChars, currentByte);
             currentByte += 4;
     
-            tempBlockObject->indexInVec = i;
+            //tempBlockObject->indexInVec = i;
             this->blockObjects.push_back(*tempBlockObject);
         }
     
@@ -155,13 +152,13 @@ void Level::loadLevel(bn::array<unsigned char, 5120> &levelChars, bool debugMode
             tempBackgroundChage->xPos = readIntFromJava(levelChars, currentByte);
             currentByte += 4;
     
-            tempBackgroundChage->customTexture = static_cast<bool>(levelChars.at(currentByte));
+            //tempBackgroundChage->customTexture = static_cast<bool>(levelChars.at(currentByte));
             currentByte++; //WILL CURRENTLY BREAK HERE IF CUSTOM GRAPHICS ARE ENABLED
 
             tempBackgroundChage->colorID = readIntFromJava(levelChars, currentByte);
             currentByte += 4;
     
-            tempBackgroundChage->indexInVec = i;
+            //tempBackgroundChage->indexInVec = i;
     
             this->backgroundChanges.push_back(*tempBackgroundChage);
     
@@ -182,7 +179,7 @@ void Level::loadLevel(bn::array<unsigned char, 5120> &levelChars, bool debugMode
             tempGravityChange->xPos = readIntFromJava(levelChars, currentByte);
             currentByte += 4;
     
-            tempGravityChange->indexInVec = i;
+            //tempGravityChange->indexInVec = i;
     
             this->gravityChanges.push_back(*tempGravityChange);
     
@@ -190,50 +187,45 @@ void Level::loadLevel(bn::array<unsigned char, 5120> &levelChars, bool debugMode
         delete tempGravityChange;
     
         //The next 4 bytes are the number of falling block fade effects, stored as an int
-        this->numBlocksFall = readIntFromJava(levelChars, currentByte);
+        this->numFadeEffects = readIntFromJava(levelChars, currentByte);
         currentByte += 4;
     
         //Each falling block object takes up 8 bytes (2 ints = 2 * 4 bytes = 8 bytes)
         //Therefore the next (8 * numFallingBlocks) bytes are Falling Blocks data
-        BlocksFall *tempBlocksFall = new BlocksFall;
+        FadeEffect *tempFadeEffect = new FadeEffect;
     
-        for(int i = 0; i < this->numBlocksFall; i++)
+        for(int i = 0; i < this->numFadeEffects; i++)
         {
-            tempBlocksFall->startX = readIntFromJava(levelChars, currentByte);
+            tempFadeEffect->startX = readIntFromJava(levelChars, currentByte);
             currentByte += 4;
     
-            tempBlocksFall->endX = readIntFromJava(levelChars, currentByte);
+            tempFadeEffect->endX = readIntFromJava(levelChars, currentByte);
             currentByte += 4;
     
-            tempBlocksFall->indexInVec = i;
-    
-            this->blocksFalls.push_back(*tempBlocksFall);
+            tempFadeEffect->upOrDown = false;
+            
+            this->fadeEffects.push_back(*tempFadeEffect);
         }
-    
-        delete tempBlocksFall;
-    
+        
         //The next 4 bytes are the number of rising block fade effects, stored as an int
-        this->numBlocksRise = readIntFromJava(levelChars, currentByte);
+        int oldNumFadeEffects = this->numFadeEffects;
+        this->numFadeEffects += readIntFromJava(levelChars, currentByte);
         currentByte += 4;
 
-        //Each rising block object takes up 8 bytes (2 ints = 2 * 4 bytes = 8 bytes)
-        //Therefore the next (8 * numRisingBlocks) bytes are Rising Blocks data
-        BlocksRise *tempBlocksRise = new BlocksRise;
-    
-        for(int i = 0; i < this->numBlocksFall; i++)
+        for(int i = oldNumFadeEffects; i < this->numFadeEffects; i++)
         {
-            tempBlocksRise->startX = readIntFromJava(levelChars, currentByte);
+            tempFadeEffect->startX = readIntFromJava(levelChars, currentByte);
             currentByte += 4;
     
-            tempBlocksRise->endX = readIntFromJava(levelChars, currentByte);
+            tempFadeEffect->endX = readIntFromJava(levelChars, currentByte);
             currentByte += 4;
     
-            tempBlocksRise->indexInVec = i;
-    
-            this->blocksRises.push_back(*tempBlocksRise);
+            tempFadeEffect->upOrDown = true;
+            
+            this->fadeEffects.push_back(*tempFadeEffect);
         }
     
-        delete tempBlocksRise;
+        delete tempFadeEffect;
     }
 }
 
@@ -322,7 +314,7 @@ BlockObject& Level::getBlockAtIndex(int index)
     }
     else
     {
-        static BlockObject nullObj = {0, 0, 0, 0};
+        static BlockObject nullObj = {0, 0, 0};
         return nullObj;
     }
 }
@@ -335,7 +327,7 @@ BackgroundChange& Level::getBackgroundAtIndex(int index)
     }
     else
     {
-        static BackgroundChange nullObj = {0, 0, "null", false, "null", 0};
+        static BackgroundChange nullObj = {0, 0};
         return nullObj;
     }
 
@@ -349,33 +341,20 @@ GravityChange& Level::getGravAtIndex(int index)
     }
     else
     {
-        static GravityChange nullObj = {0, 0};
+        static GravityChange nullObj = {0};
         return nullObj;
     }
 }
 
-BlocksRise& Level::getRisingAtIndex(int index)
+FadeEffect& Level::getFadeEffectAtIndex(int index)
 {
-    if(index < this->numBlocksRise)
+    if(index < this->numFadeEffects)
     {
-        return this->blocksRises.at(index);
+        return this->fadeEffects.at(index);
     }
     else
     {
-        static BlocksRise nullObj = {0, 0, 0};
-        return nullObj;
-    }
-}
-
-BlocksFall& Level::getFallingAtIndex(int index)
-{
-    if(index < this->numBlocksFall)
-    {
-        return this->blocksFalls.at(index);
-    }
-    else
-    {
-        static BlocksFall nullObj = {0, 0, 0};
+        static FadeEffect nullObj = {0, 0, false};
         return nullObj;
     }
 }
@@ -400,50 +379,38 @@ int Level::getGravityCount()
     return this->numGravityChanges;
 }
 
-int Level::getRisingCount()
+int Level::getFadeEffectCount()
 {
-    return this->numBlocksRise;
-}
-
-int Level::getFallingCount()
-{
-    return this->numBlocksFall;
+    return this->numFadeEffects;
 }
 
 void Level::addBlock(BlockObject *toAdd)
 {
-    toAdd->indexInVec = this->numBlockObjects;
+    //toAdd->indexInVec = this->numBlockObjects;
     numBlockObjects++;
     this->blockObjects.push_back(*toAdd);
 }
 
 void Level::addBackground(BackgroundChange *toAdd)
 {
-    toAdd->indexInVec = this->numBackgroundChanges;
+    //toAdd->indexInVec = this->numBackgroundChanges;
     numBackgroundChanges++;
-    toAdd->colorName = this->colorNames[toAdd->colorID];
+    //toAdd->colorName = this->colorNames[toAdd->colorID];
     this->backgroundChanges.push_back(*toAdd);
 }
 
 void Level::addGravity(GravityChange *toAdd)
 {
-    toAdd->indexInVec = this->numGravityChanges;
+    //toAdd->indexInVec = this->numGravityChanges;
     numGravityChanges++;
     this->gravityChanges.push_back(*toAdd);
 }
 
-void Level::addRising(BlocksRise *toAdd)
+void Level::addFadeEffect(FadeEffect *toAdd)
 {
-    toAdd->indexInVec = this->numBlocksRise;
-    numBlocksRise++;
-    this->blocksRises.push_back(*toAdd);
-}
-
-void Level::addFalling(BlocksFall *toAdd)
-{
-    toAdd->indexInVec = this->numBlocksFall;
-    numBlocksFall++;
-    this->blocksFalls.push_back(*toAdd);
+    //toAdd->indexInVec = this->numBlocksRise;
+    numFadeEffects++;
+    this->fadeEffects.push_back(*toAdd);
 }
 
 void Level::setEndPos(int wantedEndPos)
@@ -507,38 +474,20 @@ void Level::removeLastGravity()
     }
 }
 
-void Level::removeRisingAtIndex(int index)
+void Level::removeFadeEffectAtIndex(int index)
 {
-    if(index < this->numBlocksRise)
+    if(index < this->numFadeEffects)
     {
-        this->blocksRises.erase(this->blocksRises.begin() + index);
-        this->numBlocksRise--;
+        this->fadeEffects.erase(this->fadeEffects.begin() + index);
+        this->numFadeEffects--;
     }
 }
 
-void Level::removeLastRising()
+void Level::removeLastFadeEffect()
 {
-    if(this->numBlocksRise > 0)
+    if(this->numFadeEffects > 0)
     {
-        this->blocksRises.pop_back();
-        this->numBlocksRise--;
-    }
-}
-
-void Level::removeFallingAtIndex(int index)
-{
-    if(index < this->numBlocksFall)
-    {
-        this->blocksFalls.erase(this->blocksFalls.begin() + index);
-        this->numBlocksFall--;
-    }
-}
-
-void Level::removeLastFalling()
-{
-    if(this->numBlocksFall > 0)
-    {
-        this->blocksFalls.pop_back();
-        this->numBlocksFall--;
+        this->fadeEffects.pop_back();
+        this->numFadeEffects--;
     }
 }

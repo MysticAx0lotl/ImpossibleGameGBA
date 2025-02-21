@@ -43,7 +43,7 @@ int main()
 
     //int menu = 0;
     
-    Level testlvl(doomDat, false);
+    Level testlvl(chaozfantasyDat, false);
 
 
     dbgMenu::mainLoop();

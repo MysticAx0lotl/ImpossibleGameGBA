@@ -18,7 +18,7 @@ struct BlockObject
     int xPos;
     int yPos;
     int objType;
-    int indexInVec;
+    //int indexInVec;
 };
 
 /*
@@ -33,10 +33,7 @@ struct BackgroundChange
 {
     int xPos;
     int colorID;
-    const char* colorName;
-    bool customTexture;
-    const char* filePath;
-    int indexInVec;
+    //int indexInVec;
 };
 
 /*
@@ -47,34 +44,20 @@ indexInVec = the object's index in the vector it's part of. Only used by this li
 struct GravityChange
 {
     int xPos;
-    int indexInVec;
+    //int indexInVec;
 };
 
 /*
-BlocksRise: the object that enables the fade effect where blocks will rise from the ground on the right side of the screen
+FadeEffect: the object that enables the fade effect where blocks will rise or fall from the ground on the right side of the screen
 startX = the x positon where the effect will be enabled
 endX = the x position where the effect will be disabled
-indexInVec = the object's index in the vector it's part of. Only used by this library, does not get read from or written to the level file
-Note: this and fallingBlocks could be merged into a single struct, but I don't want to merge them to keep true to the original code
+upOrDown = whether it triggers the rising or falling effect (true=rising, false=falling)
 */
-struct BlocksRise
+struct FadeEffect
 {
     int startX;
     int endX;
-    int indexInVec;
-};
-
-/*
-BlocksFall: the object that enables the fade effect where blocks will fall to the ground on the left side of the screen
-startX = the x positon where the effect will be enabled
-endX = the x position where the effect will be disabled
-indexInVec = the object's index in the vector it's part of. Only used by this library, does not get read from or written to the level file
-*/
-struct BlocksFall
-{
-    int startX;
-    int endX;
-    int indexInVec;
+    bool upOrDown;
 };
 
 /*
@@ -118,7 +101,7 @@ class Level
 {
     public:
         Level(bool);
-        Level(bn::array<unsigned char, 5120> levelChars, bool);
+        Level(bn::array<unsigned char, 5120> &levelChars, bool);
         ~Level();
         void loadLevel(bn::array<unsigned char, 5120> &levelChars, bool);
         //void saveLevel(std::string); //char const* is still needed in loadLevel since it passes that value to a lot of other functions, while saveLevel does not
@@ -128,21 +111,18 @@ class Level
         BlockObject& getBlockAtIndex(int);
         BackgroundChange& getBackgroundAtIndex(int);
         GravityChange& getGravAtIndex(int);
-        BlocksRise& getRisingAtIndex(int);
-        BlocksFall& getFallingAtIndex(int);
+        FadeEffect& getFadeEffectAtIndex(int);
         int getEndPos();
         int getBlockCount();
         int getBackgroundCount();
         int getGravityCount();
-        int getRisingCount();
-        int getFallingCount();
+        int getFadeEffectCount();
 
         //set methods
         void addBlock(BlockObject*);
         void addBackground(BackgroundChange*);
         void addGravity(GravityChange*);
-        void addRising(BlocksRise*);
-        void addFalling(BlocksFall*);
+        void addFadeEffect(FadeEffect*);
         void setEndPos(int);
 
         //removal methods
@@ -152,27 +132,20 @@ class Level
         void removeLastBackground();
         void removeGravityAtIndex(int);
         void removeLastGravity();
-        void removeRisingAtIndex(int);
-        void removeLastRising();
-        void removeFallingAtIndex(int);
-        void removeLastFalling();
+        void removeFadeEffectAtIndex(int);
+        void removeLastFadeEffect();
         
     private:
-        bn::vector<BlockObject, 512> blockObjects;
-        bn::vector<BackgroundChange, 64> backgroundChanges;
-        bn::vector<GravityChange, 64> gravityChanges;
-        bn::vector<BlocksRise, 64> blocksRises;
-        bn::vector<BlocksFall, 64> blocksFalls;
+        bn::vector<BlockObject, 1024> blockObjects;
+        bn::vector<BackgroundChange, 16> backgroundChanges;
+        bn::vector<GravityChange, 16> gravityChanges;
+        bn::vector<FadeEffect, 32> fadeEffects;
         short numBlockObjects;
         int numBackgroundChanges;
         int numGravityChanges;
-        int numBlocksRise;
-        int numBlocksFall;
+        int numFadeEffects;
         int endPos;
-        bool customGraphicsEnabled;
         int formatVer;
-        const char* blockNames[3] = {"Platform", "Spike", "Pit"}; 
-        const char* colorNames[6] = {"blue", "yellow", "green", "violet", "pink", "black"};
 };
 
 #endif
