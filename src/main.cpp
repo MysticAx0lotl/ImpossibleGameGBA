@@ -43,8 +43,7 @@ int main()
 
     //int menu = 0;
     
-    Level testlvl(chaozfantasyDat, false);
-
+    Level *testlvl = new Level(chaozfantasyDat, false);
 
     dbgMenu::mainLoop();
 }
